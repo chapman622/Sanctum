@@ -1,7 +1,7 @@
 {
   "appName": "Sanctum Cue Board",
   "description": "Big on-screen cues for Vermyx, Kezalam and Nakatra (Sanctum of Rebirth), Normal & Hard Mode.",
-  "appUurl": "./index.html?v=10",
+  "appUurl": "./index.html",
   "configUrl": "./appconfig.json",
   "iconUrl": "",
   "defaultWidth": 380,
