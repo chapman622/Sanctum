@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Forces Alt1 to clear its browser cache and fetch live files instantly -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<title>Sanctum Cue Board</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #111216;
+  color: #e8e8e8;
+  padding: 10px;
+  user-select: none;
+  min-width: 320px;
+
+  --icon-size: 80px;
+  --icon-image-size: 64px;
+}
+
+/* ============================================================
+   TRANSPARENT MODE
+   ============================================================ */
+body.transparent-mode { background: transparent; }
+body.transparent-mode .cue-display { background: transparent; border-color: transparent !important; padding: 0; }
+body.transparent-mode .waiting { background: transparent; border-color: transparent; }
+body.transparent-mode .action { background: transparent; border-color: transparent; }
+body.transparent-mode .arrow { text-shadow: 0 2px 3px #000, 0 0 4px #000; }
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+.brand { font-size: 15px; font-weight: 800; color: #ff6b6b; }
+.tab-btn { border: 1px solid #33353d; background: #1b1d23; color: #aaa; border-radius: 6px; padding: 6px 9px; font-size: 11px; cursor: pointer; }
+.tab-btn:hover { color: #fff; background: #252831; }
+
+/* ============================================================
+   BOSS TABS + MODE TOGGLE
+   ============================================================ */
+.boss-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.boss-tab { flex: 1; text-align: center; border: 1px solid #33353d; background: #1b1d23; color: #aaa; border-radius: 8px; padding: 8px 4px; font-size: 12px; font-weight: 800; cursor: pointer; }
+.boss-tab.active { color: #fff; background: #2a1616; border-color: #ff6b6b; }
+
+.mode-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; color: #aaa; }
+.mode-toggle { display: flex; border: 1px solid #33353d; border-radius: 6px; overflow: hidden; }
+.mode-toggle div { padding: 5px 10px; cursor: pointer; font-weight: 800; font-size: 11px; }
+.mode-toggle div.active { background: #ff6b6b; color: #111; }
+.mode-toggle div:not(.active) { background: #1b1d23; color: #aaa; }
+
+/* ============================================================
+   GAMEPLAY BOARD
+   ============================================================ */
+#cueBoard { display: block; }
+
+.waiting {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #555963;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #25272e;
+  border-radius: 10px;
+  background: #15171c;
+}
+
+.cue-display {
+  min-height: 220px;
+  border: 2px solid #333;
+  border-radius: 10px;
+  background: #15171c;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  transition: border-color 0.15s;
+  overflow: hidden;
+}
+
+.cue-titlebar {
+  font-size: 18px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 4px #000;
+  margin-bottom: 12px;
+  text-align: center;
+  letter-spacing: .3px;
+}
+
+.actions { width: 100%; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: clamp(6px, 1.5vw, 14px); }
+
+.action {
+  min-width: 74px;
+  min-height: 74px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #3b3e47;
+  background: #20232a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+.action.icon {
+  width: var(--icon-size);
+  height: calc(var(--icon-size) + 18px);
+  padding: calc(var(--icon-size) * 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.action-label { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.action img {
+  width: var(--icon-image-size);
+  height: var(--icon-image-size);
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.action.text {
+  min-width: max(90px, calc(var(--icon-size) * 1.1));
+  min-height: calc(var(--icon-size) * 0.72);
+  padding: 10px 14px;
+  font-size: clamp(12px, calc(var(--icon-size) * 0.17), 22px);
+  line-height: 1.15;
+}
+
+.arrow { color: #777b86; font-size: clamp(18px, calc(var(--icon-size) * 0.30), 42px); font-weight: 900; flex: 0 0 auto; }
+
+.hm-note {
+  margin-top: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffce54;
+  background: rgba(0,0,0,.3);
+  padding: 5px 10px;
+  border-radius: 6px;
+  text-align: center;
+  display: none;
+}
+
+#settings { display: none; }
+
+.settings-section { background: #17191e; border: 1px solid #292c34; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+.settings-title { font-size: 12px; font-weight: 800; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.auto-row { display: flex; gap: 8px; align-items: center; }
+.auto-row label { font-size: 13px; flex: 1; }
+
+.toggle { width: 44px; height: 24px; background: #374151; border-radius: 12px; position: relative; cursor: pointer; transition: background 0.2s; flex: 0 0 auto; }
+.toggle.on { background: #16a34a; }
+.toggle::after { content: ''; position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: left 0.2s; }
+.toggle.on::after { left: 23px; }
+
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.setting-row:last-child { margin-bottom: 0; }
+.setting-label { font-size: 13px; color: #ddd; font-weight: 600; }
+.setting-description { font-size: 10px; color: #777; margin-top: 3px; }
+
+.slider-wrap { width: 100%; margin-top: 5px; }
+.slider-values { display: flex; justify-content: space-between; align-items: center; color: #777; font-size: 10px; margin-top: 3px; }
+#iconSizeValue { color: #fff; font-size: 12px; font-weight: 800; }
+#iconSize { width: 100%; cursor: pointer; accent-color: #ef4444; }
+
+.status { font-size: 11px; color: #aaa; margin-bottom: 8px; min-height: 16px; }
+.status.ok { color: #4ade80; }
+.status.warn { color: #fbbf24; }
+.status.err { color: #f87171; }
+
+.test-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.test-btn { border: 0; border-radius: 6px; padding: 9px 5px; color: #fff; font-size: 11px; font-weight: 800; cursor: pointer; text-align: left; }
+.test-btn:hover { filter: brightness(1.15); }
+.test-btn .manual-flag { display: block; font-size: 9px; font-weight: 700; opacity: .85; margin-top: 2px; }
+
+.log { background: #0c0d10; border: 1px solid #292c34; border-radius: 6px; padding: 8px; font-size: 10px; height: 150px; overflow-y: auto; font-family: monospace; color: #9ca3af; }
+.log div { margin-bottom: 2px; }
+.log .hit { color: #4ade80; }
+.log .info { color: #60a5fa; }
+
+.help { font-size: 10px; color: #777; line-height: 1.4; }
+
+@media (max-width: 430px) {
+  body { padding: 6px; }
+  .cue-display { min-height: 200px; }
+  .waiting { min-height: 200px; }
+  .arrow { font-size: clamp(16px, calc(var(--icon-size) * 0.27), 32px); }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ============================================================
+     TOP BAR (with volume slider)
+     ============================================================ -->
+<div class="topbar">
+  <div class="brand">SANCTUM</div>
+  <div style="display: flex; align-items: center; gap: 8px; margin-left: auto; margin-right: 12px;">
+    <span style="font-size: 11px; color: #aaa; font-weight: bold;">🔊 Vol:</span>
+    <input id="voiceVolumeSlider" type="range" min="0" max="1" step="0.05" value="1"
+      style="width: 75px; height: 4px; cursor: pointer; accent-color: #ff6b6b;">
+  </div>
+  <button id="settingsBtn" class="tab-btn">⚙ Settings</button>
+</div>
+
+<!-- ============================================================
+     BOSS TABS
+     ============================================================ -->
+<div id="bossTabs" class="boss-tabs">
+  <div class="boss-tab active" data-boss="vermyx">VERMYX</div>
+  <div class="boss-tab" data-boss="kezalam">KEZALAM</div>
+  <div class="boss-tab" data-boss="nakatra">NAKATRA</div>
+</div>
+
+<div id="modeRow" class="mode-row">
+  <span>Mode:</span>
+  <div class="mode-toggle">
+    <div id="nmBtn" class="active">Normal</div>
+    <div id="hmBtn">Hard</div>
+  </div>
+  <span style="margin-left:auto; opacity:.7;">Auto-read watches all 3 bosses</span>
+</div>
+
+<!-- ============================================================
+     MAIN GAMEPLAY VIEW
+     ============================================================ -->
+<div id="cueBoard">
+  <div id="waiting" class="waiting">WAITING FOR CUE…</div>
+  <div id="cueDisplay" class="cue-display" style="display:none;">
+    <div id="cueTitleBar" class="cue-titlebar"></div>
+    <div id="actions" class="actions"></div>
+    <div id="hmNoteEl" class="hm-note"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SETTINGS / TESTING
+     ============================================================ -->
+<div id="settings">
+
+  <!-- DISPLAY -->
+  <div class="settings-section">
+    <div class="settings-title">Display</div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Transparent background</div>
+        <div class="setting-description">Remove the Cue Board panel behind the actions.</div>
+      </div>
+      <div id="transparentToggle" class="toggle" title="Toggle transparent background"></div>
+    </div>
+
+    <div class="setting-row" style="margin-top: 14px;">
+      <div class="setting-label">Icon size</div>
+      <div id="iconSizeValue">80px</div>
+    </div>
+    <div class="slider-wrap">
+      <input id="iconSize" type="range" min="32" max="200" step="1" value="80">
+      <div class="slider-values"><span>32px</span><span>200px</span></div>
+    </div>
+  </div>
+
+  <!-- AUTO DETECTION -->
+  <div class="settings-section">
+    <div class="settings-title">Auto Detection</div>
+    <div id="status" class="status">Loading libraries…</div>
+    <div class="auto-row">
+      <label>Auto-read Sanctum chat</label>
+      <div id="autoToggle" class="toggle" title="Toggle auto chat reading"></div>
+    </div>
+    <div class="setting-description" style="margin-top:8px;">
+      Only mechanics with a confirmed in-game chat line are auto-detected — those are
+      the ones without "manual only" under them in the test grid below.
+    </div>
+  </div>
+
+  <!-- CUE TESTING -->
+  <div class="settings-section">
+    <div class="settings-title">Cue Testing — <span id="testBossLabel">Vermyx</span></div>
+    <div id="testGrid" class="test-grid"></div>
+  </div>
+
+  <!-- OCR / DEBUG -->
+  <div class="settings-section">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+      <div class="settings-title" style="margin-bottom:0;">OCR / Debug Log</div>
+      <button id="copyLogBtn" class="tab-btn">📋 Copy Log</button>
+    </div>
+    <div id="log" class="log"></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="settings-section">
+    <div class="settings-title">Controls</div>
+    <div class="help">
+      1–9, 0 = test cue for the currently selected boss tab<br>
+      Boss tabs switch which mechanics show in the test grid — auto-read always
+      watches all three at once and switches the tab for you when it fires.<br>
+      Hard Mode toggle only adds a timing note under the banner, it does not
+      change what triggers it.<br>
+      Auto-read watches the RuneScape chatbox. Keep chat visible while it's active.
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     ALT1 LIBRARIES
+     ============================================================ -->
+<script src="https://unpkg.com/alt1@0.1.3/dist/base/index.js"></script>
+<script src="https://unpkg.com/alt1@0.1.3/dist/ocr/index.js"></script>
+<script src="https://unpkg.com/alt1@0.1.3/dist/chatbox/index.js"></script>
+
+<script>
+
+/* ================================================================
+   CUE DEFINITIONS
+   Same shape as the Zamorak board: title, actions[], color, duration,
+   triggers[]. Added: boss (which tab it belongs to) and an optional
+   hmNote shown only when Hard Mode is selected.
+
+   triggers: lowercase substrings of CONFIRMED in-game chat lines
+   (pulled from the RuneScape Wiki strategy pages). An empty
+   triggers[] means no documented chat line exists — that cue is
+   manual/keybind only and is clearly flagged as such in the UI,
+   rather than guessing at fake trigger text.
+================================================================ */
+const CUES = {
+
+  /* -------------------- VERMYX -------------------- */
+  v_moonstone: {
+    boss: "vermyx", title: "MOONSTONE SHARD",
+    actions: [{ type: "text", text: "DODGE THE 1x1 SHARD" }],
+    color: [234, 88, 18], duration: 4000,
+    triggers: ["snaaaarl"],
+    hmNote: "HM: 3 shards used, hit in 1.8s"
+  },
+  v_coilspawn: {
+    boss: "vermyx", title: "COILSPAWN",
+    actions: [{ type: "text", text: "IGNORE OR STUN + KILL" }],
+    color: [100, 116, 139], duration: 4000,
+    triggers: ["craaaaa"],
+    hmNote: "HM: all 4 up from the start, instant respawn"
+  },
+  v_soulrush: {
+    boss: "vermyx", title: "SOUL RUSH",
+    actions: [{ type: "text", text: "REDIRECT 3 SOULS — STAND ON MARKER" }],
+    color: [168, 85, 247], duration: 6000,
+    triggers: ["rarghh"],
+    hmNote: "HM: markers land faster"
+  },
+  v_soulbomb: {
+    boss: "vermyx", title: "SOUL BOMB",
+    actions: [
+      { type: "icon", src: "icons/deflect_magic.png" },
+      { type: "text", text: "DODGE 3x3 AOE" }
+    ],
+    color: [220, 38, 38], duration: 5000,
+    triggers: ["kreeee"],
+    hmNote: "HM: hits TWICE"
+  },
+  v_scarabhealer: {
+    boss: "vermyx", title: "SCARAB HEALER",
+    actions: [{ type: "text", text: "IGNORE, OR STUN + KILL" }],
+    color: [34, 197, 94], duration: 5000,
+    triggers: ["heaall"],
+    hmNote: "HM: heals boss after only 12s"
+  },
+  v_wyrmfire: {
+    boss: "vermyx", title: "WYRMFIRE",
+    actions: [{ type: "text", text: "MOVE OUT OF BREATH LINE" }],
+    color: [249, 115, 22], duration: 4000,
+    triggers: [],
+    hmNote: "HM: damage starts 2.4s after telegraph"
+  },
+
+  /* -------------------- KEZALAM -------------------- */
+  k_scattered: {
+    boss: "kezalam", title: "SANCTUM BLAST — SCATTERED",
+    actions: [{ type: "text", text: "DODGE THE WIDE 7x7 GRID" }],
+    color: [59, 130, 246], duration: 4000,
+    triggers: ["dhaaarken"],
+    hmNote: "HM: extra repeat, hits in 1.8s"
+  },
+  k_close: {
+    boss: "kezalam", title: "SANCTUM BLAST — CLOSE",
+    actions: [{ type: "text", text: "MOVE 3+ TILES FROM BOSS" }],
+    color: [220, 38, 38], duration: 4000,
+    triggers: ["graaah"],
+    hmNote: "HM: extra repeat, hits in 1.8s"
+  },
+  k_mid: {
+    boss: "kezalam", title: "SANCTUM BLAST — MID",
+    actions: [{ type: "text", text: "MOVE OUT OF 3x3 AROUND BOSS" }],
+    color: [234, 88, 18], duration: 4000,
+    triggers: ["kyaaa"],
+    hmNote: "HM: extra repeat, hits in 1.8s"
+  },
+  k_far: {
+    boss: "kezalam", title: "SANCTUM BLAST — FAR",
+    actions: [{ type: "text", text: "WATCH FOR GRIDS AWAY FROM BOSS" }],
+    color: [202, 138, 4], duration: 4000,
+    triggers: ["hrrrr"],
+    hmNote: "HM: extra repeat, hits in 1.8s"
+  },
+  k_line: {
+    boss: "kezalam", title: "SANCTUM BLAST — LINE",
+    actions: [{ type: "text", text: "SIDESTEP OFF THE LINE" }],
+    color: [147, 51, 234], duration: 4000,
+    triggers: ["paiiin"],
+    hmNote: "HM: hits in 1.8s"
+  },
+  k_moonstoneprison: {
+    boss: "kezalam", title: "MOONSTONE PRISON + SOUL BOMB",
+    actions: [
+      { type: "icon", src: "icons/freedom.png" },
+      { type: "text", text: "BREAK SHARD & MOVE OUT" }
+    ],
+    color: [6, 182, 212], duration: 6000,
+    triggers: [],
+    hmNote: "HM: soul bomb no longer clears nearby shards"
+  },
+  k_unstablescarabs: {
+    boss: "kezalam", title: "UNSTABLE SCARABS",
+    actions: [{ type: "text", text: "STUN & KILL BOTH" }],
+    color: [190, 24, 93], duration: 6000,
+    triggers: [],
+    hmNote: "HM: fills in 15s (was 30s) — be quick"
+  },
+  k_obelisk: {
+    boss: "kezalam", title: "OBELISK PHASE",
+    actions: [{ type: "text", text: "DPS OBELISK BEFORE 24s TIMER" }],
+    color: [217, 119, 6], duration: 6000,
+    triggers: [],
+    hmNote: ""
+  },
+
+  /* -------------------- NAKATRA -------------------- */
+  n_soulfire: {
+    boss: "nakatra", title: "SOULFIRE WAVE",
+    actions: [{ type: "text", text: "AVOID THE WAVE" }],
+    color: [239, 68, 68], duration: 4000,
+    triggers: ["soulfire erases all"],
+    hmNote: "HM: both wave patterns fire back-to-back"
+  },
+  n_phase2: {
+    boss: "nakatra", title: "PHASE 2 — HIEROGLYPHS ACTIVE",
+    actions: [{ type: "text", text: "WEST HIEROGLYPH USED FIRST" }],
+    color: [147, 51, 234], duration: 6000,
+    triggers: ["sanctum is mine to control"],
+    hmNote: ""
+  },
+  n_hieroglyph: {
+    boss: "nakatra", title: "SANCTUM HIEROGLYPHS",
+    actions: [{ type: "text", text: "STAND IN THE LIT SAFE SQUARE" }],
+    color: [168, 85, 247], duration: 5000,
+    triggers: ["face judgement foul wretch", "feel the power beneath your feet"],
+    hmNote: "HM: hits in 1.8s after telegraph"
+  },
+  n_obliterate1: {
+    boss: "nakatra", title: "OBLITERATE — INCOMING",
+    actions: [{ type: "text", text: "GET DEFENSIVES READY" }],
+    color: [202, 138, 4], duration: 4000,
+    triggers: ["prepare for death"],
+    hmNote: ""
+  },
+  n_obliterate2: {
+    boss: "nakatra", title: "OBLITERATE — NOW",
+    actions: [
+      { type: "icon", src: "icons/deflect_magic.png" },
+      { type: "icon", src: "icons/resonance.png" }
+    ],
+    color: [250, 204, 21], duration: 5000,
+    triggers: ["be obliterated"],
+    hmNote: "HM: hits 3x, 0.6s apart"
+  },
+  n_scarabs: {
+    boss: "nakatra", title: "SUMMON SCARABS",
+    actions: [{ type: "text", text: "STUN THE FAR SCARAB, IGNORE NEAR" }],
+    color: [34, 197, 94], duration: 5000,
+    triggers: [],
+    hmNote: "HM: scarabs charge at double speed"
+  },
+  n_nefthys: {
+    boss: "nakatra", title: "NEFTHYS PHASE",
+    actions: [
+      { type: "icon", src: "icons/deflect_melee.png" },
+      { type: "text", text: "STAND CLOSE, BURN THEM FAST" }
+    ],
+    color: [219, 39, 119], duration: 6000,
+    triggers: [],
+    hmNote: "HM: Nakatra's heals to Nefthys are much stronger"
+  },
+  n_shadowsands: {
+    boss: "nakatra", title: "SHADOWSANDS DRAG",
+    actions: [{ type: "text", text: "REMEMBER MISSING HIEROGLYPH" }],
+    color: [161, 98, 7], duration: 6000,
+    triggers: [],
+    hmNote: "HM: 4 hieroglyphs shown instead of 2"
+  },
+  n_barrage: {
+    boss: "nakatra", title: "BARRAGE — RETURN",
+    actions: [{ type: "text", text: "STAND ON THE MISSING GLYPH NOW" }],
+    color: [220, 38, 38], duration: 5000,
+    triggers: [],
+    hmNote: "HM: Nakatra recovers 5.4s faster after this"
+  },
+  n_shockwave: {
+    boss: "nakatra", title: "SANCTUM SHOCKWAVE",
+    actions: [{ type: "text", text: "EDGE OUT, WALK IN AS IT BURSTS" }],
+    color: [239, 68, 68], duration: 6000,
+    triggers: ["you cannot stop me"],
+    hmNote: "HM: only 3 autos follow in P4"
+  }
+};
+
+const BOSS_ORDER = ["vermyx", "kezalam", "nakatra"];
+const TEST_KEYS = "1234567890";
+
+/* ================================================================
+   STATE
+================================================================ */
+let autoEnabled = true;
+let lastFired = {};
+let reader = null;
+let pollTimer = null;
+let foundChat = false;
+let lastLogged = "";
+let currentCue = null;
+let activeCues = [];
+let masterVoiceVolume = 1.0;
+let currentBoss = "vermyx";
+let hardMode = false;
+
+const overlayIconCache = {};
+
+/* ================================================================
+   DISPLAY SETTINGS
+================================================================ */
+const DEFAULT_ICON_SIZE = 80;
+const MIN_ICON_SIZE = 32;
+const MAX_ICON_SIZE = 200;
+
+let iconSize = DEFAULT_ICON_SIZE;
+let transparentBackground = false;
+
+/* ================================================================
+   DOM
+================================================================ */
+const statusEl = document.getElementById("status");
+const logEl = document.getElementById("log");
+const autoToggle = document.getElementById("autoToggle");
+
+const voiceVolumeSlider = document.getElementById("voiceVolumeSlider");
+voiceVolumeSlider.addEventListener("input", () => {
+  masterVoiceVolume = Number(voiceVolumeSlider.value);
+});
+
+const cueBoard = document.getElementById("cueBoard");
+const settings = document.getElementById("settings");
+const settingsBtn = document.getElementById("settingsBtn");
+const waiting = document.getElementById("waiting");
+const cueDisplay = document.getElementById("cueDisplay");
+const cueTitleBarEl = document.getElementById("cueTitleBar");
+const actionsEl = document.getElementById("actions");
+const hmNoteEl = document.getElementById("hmNoteEl");
+const transparentToggle = document.getElementById("transparentToggle");
+const iconSizeSlider = document.getElementById("iconSize");
+const iconSizeValue = document.getElementById("iconSizeValue");
+const bossTabs = document.getElementById("bossTabs");
+const modeRow = document.getElementById("modeRow");
+const testGrid = document.getElementById("testGrid");
+const testBossLabel = document.getElementById("testBossLabel");
+const nmBtn = document.getElementById("nmBtn");
+const hmBtn = document.getElementById("hmBtn");
+
+/* ================================================================
+   BOSS TABS + MODE TOGGLE
+================================================================ */
+function cuesForBoss(boss) {
+  return Object.entries(CUES).filter(([id, cue]) => cue.boss === boss);
+}
+
+function setActiveBossTab(boss) {
+  currentBoss = boss;
+  document.querySelectorAll(".boss-tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.boss === boss);
+  });
+  testBossLabel.textContent = boss.charAt(0).toUpperCase() + boss.slice(1);
+  buildTestGrid();
+}
+
+document.querySelectorAll(".boss-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    setActiveBossTab(tab.dataset.boss);
+    log("Switched to " + tab.dataset.boss, "info");
+  });
+});
+
+nmBtn.addEventListener("click", () => {
+  hardMode = false;
+  nmBtn.classList.add("active");
+  hmBtn.classList.remove("active");
+  if (currentCue) renderCue(currentCue);
+});
+hmBtn.addEventListener("click", () => {
+  hardMode = true;
+  hmBtn.classList.add("active");
+  nmBtn.classList.remove("active");
+  if (currentCue) renderCue(currentCue);
+});
+
+function buildTestGrid() {
+  testGrid.innerHTML = "";
+  const entries = cuesForBoss(currentBoss);
+  entries.forEach(([id, cue], i) => {
+    const btn = document.createElement("button");
+    btn.className = "test-btn";
+    btn.style.background = "rgb(" + cue.color.join(",") + ")";
+    const keyLabel = TEST_KEYS[i] || "";
+    btn.innerHTML = (keyLabel ? keyLabel + " · " : "") + cue.title +
+      (cue.triggers.length ? "" : '<span class="manual-flag">manual only — no known chat line</span>');
+    btn.addEventListener("click", () => showBanner(id));
+    testGrid.appendChild(btn);
+  });
+}
+
+/* ================================================================
+   SETTINGS PANEL
+================================================================ */
+settingsBtn.addEventListener("click", () => {
+  const showingSettings = settings.style.display === "block";
+
+  if (showingSettings) {
+    settings.style.display = "none";
+    cueBoard.style.display = "block";
+    bossTabs.style.display = "flex";
+    modeRow.style.display = "flex";
+    settingsBtn.textContent = "⚙ Settings";
+  } else {
+    settings.style.display = "block";
+    cueBoard.style.display = "none";
+    bossTabs.style.display = "none";
+    modeRow.style.display = "none";
+    settingsBtn.textContent = "← Cue Board";
+  }
+});
+
+function loadDisplaySettings() {
+  try {
+    const savedSize = localStorage.getItem("sanctumcue_icon_size");
+    const savedTransparent = localStorage.getItem("sanctumcue_transparent");
+
+    if (savedSize !== null) {
+      const parsed = Number(savedSize);
+      if (Number.isFinite(parsed)) {
+        iconSize = Math.max(MIN_ICON_SIZE, Math.min(MAX_ICON_SIZE, parsed));
+      }
+    }
+    if (savedTransparent !== null) {
+      transparentBackground = savedTransparent === "true";
+    }
+  } catch (e) {
+    console.warn("Could not load display settings", e);
+  }
+
+  iconSizeSlider.value = iconSize;
+  transparentToggle.classList.toggle("on", transparentBackground);
+  applyDisplaySettings();
+}
+
+function saveDisplaySettings() {
+  try {
+    localStorage.setItem("sanctumcue_icon_size", String(iconSize));
+    localStorage.setItem("sanctumcue_transparent", String(transparentBackground));
+  } catch (e) {
+    console.warn("Could not save display settings", e);
+  }
+}
+
+function applyDisplaySettings() {
+  const imageSize = Math.max(16, Math.round(iconSize * 0.78));
+  document.body.style.setProperty("--icon-size", iconSize + "px");
+  document.body.style.setProperty("--icon-image-size", imageSize + "px");
+  document.body.classList.toggle("transparent-mode", transparentBackground);
+
+  iconSizeSlider.value = iconSize;
+  iconSizeValue.textContent = iconSize + "px";
+  transparentToggle.classList.toggle("on", transparentBackground);
+
+  saveDisplaySettings();
+}
+
+iconSizeSlider.addEventListener("input", () => {
+  iconSize = Number(iconSizeSlider.value);
+  applyDisplaySettings();
+});
+
+transparentToggle.addEventListener("click", () => {
+  transparentBackground = !transparentBackground;
+  applyDisplaySettings();
+  log("Transparent background " + (transparentBackground ? "enabled" : "disabled"), "info");
+});
+
+function setStatus(msg, cls = "") {
+  statusEl.textContent = msg;
+  statusEl.className = "status " + cls;
+}
+
+function log(msg, cls = "") {
+  const d = document.createElement("div");
+  d.className = cls;
+  d.textContent = new Date().toLocaleTimeString() + " " + msg;
+  logEl.prepend(d);
+  while (logEl.children.length > 80) {
+    logEl.removeChild(logEl.lastChild);
+  }
+}
+
+const copyLogBtn = document.getElementById("copyLogBtn");
+copyLogBtn.addEventListener("click", () => {
+  const lines = Array.from(logEl.children).map(d => d.textContent).reverse().join("\n");
+
+  const restoreLabel = () => {
+    setTimeout(() => { copyLogBtn.textContent = "📋 Copy Log"; }, 1200);
+  };
+
+  const fallbackCopy = () => {
+    const ta = document.createElement("textarea");
+    ta.value = lines;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand("copy");
+      copyLogBtn.textContent = "✅ Copied";
+    } catch (e) {
+      copyLogBtn.textContent = "❌ Copy failed";
+    }
+    document.body.removeChild(ta);
+    restoreLabel();
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(lines).then(() => {
+      copyLogBtn.textContent = "✅ Copied";
+      restoreLabel();
+    }).catch(fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
+});
+
+/* ================================================================
+   CUE RENDERING (browser board)
+================================================================ */
+function renderCue(id) {
+  const cue = CUES[id];
+  if (!cue) return;
+
+  currentCue = id;
+  waiting.style.display = "none";
+  cueDisplay.style.display = "flex";
+  cueDisplay.style.borderColor = `rgb(${cue.color[0]}, ${cue.color[1]}, ${cue.color[2]})`;
+  cueTitleBarEl.textContent = cue.title;
+  cueTitleBarEl.style.color = `rgb(${cue.color[0]}, ${cue.color[1]}, ${cue.color[2]})`;
+  actionsEl.innerHTML = "";
+
+  cue.actions.forEach((action, index) => {
+    if (index > 0) {
+      const arrow = document.createElement("div");
+      arrow.className = "arrow";
+      arrow.textContent = "→";
+      actionsEl.appendChild(arrow);
+    }
+
+    if (action.type === "icon") {
+      const box = document.createElement("div");
+      box.className = "action icon";
+
+      const img = document.createElement("img");
+      img.src = action.src;
+      img.alt = "";
+      img.onerror = () => {
+        box.className = "action text";
+        box.textContent = "ICON MISSING";
+      };
+      box.appendChild(img);
+
+      const label = document.createElement("div");
+      label.className = "action-label";
+      label.textContent = iconName(action.src);
+      box.appendChild(label);
+
+      actionsEl.appendChild(box);
+    } else {
+      const box = document.createElement("div");
+      box.className = "action text";
+      box.textContent = action.text;
+      actionsEl.appendChild(box);
+    }
+  });
+
+  if (hardMode && cue.hmNote) {
+    hmNoteEl.textContent = cue.hmNote;
+    hmNoteEl.style.display = "block";
+  } else {
+    hmNoteEl.style.display = "none";
+  }
+}
+
+function clearCueDisplay() {
+  currentCue = null;
+  cueDisplay.style.display = "none";
+  waiting.style.display = "flex";
+  actionsEl.innerHTML = "";
+  hmNoteEl.style.display = "none";
+}
+
+/* ================================================================
+   OVERLAY HELPERS (verbatim pattern from the working Zamorak board)
+================================================================ */
+const measureCanvas = document.createElement("canvas");
+const measureCtx = measureCanvas.getContext("2d");
+
+function measureTextWidth(text, size) {
+  measureCtx.font = "bold " + size + "px sans-serif";
+  return measureCtx.measureText(text).width;
+}
+
+function color(r, g, b) {
+  const lib = window.A1lib || window.a1lib || null;
+  if (lib && typeof lib.mixColor === "function") {
+    return lib.mixColor(r, g, b);
+  }
+  return (((r & 255) << 24) | ((g & 255) << 16) | ((b & 255) << 8) | 255) >>> 0;
+}
+
+const COLORS = {
+  black: color(0, 0, 0),
+  white: color(255, 255, 255),
+  yellow: color(255, 235, 40),
+  red: color(255, 30, 30),
+  green: color(0, 255, 80),
+  blue: color(60, 160, 255)
+};
+
+/*
+ * Alt1's native bridge uses strict reflection: any argument declared
+ * as an int on the C# side throws if it receives a JS float. Every
+ * numeric value handed to an alt1.overLay* call goes through this.
+ */
+function rnd(n) {
+  return Math.round(n);
+}
+
+function filledRect(col, x, y, w, h, duration, spacing = 3) {
+  for (let yy = y; yy < y + h; yy += spacing) {
+    alt1.overLayLine(col, rnd(spacing), rnd(x), rnd(yy), rnd(x + w), rnd(yy), rnd(duration));
+  }
+}
+
+function outline(col, x, y, w, h, duration, lineWidth) {
+  alt1.overLayRect(col, rnd(x), rnd(y), rnd(w), rnd(h), rnd(duration), rnd(lineWidth));
+}
+
+function textWithShadow(text, col, size, x, y, duration) {
+  const shadow = color(0, 0, 0);
+  alt1.overLayText(text, shadow, rnd(size), rnd(x + 3), rnd(y + 3), rnd(duration));
+  alt1.overLayText(text, col, rnd(size), rnd(x), rnd(y), rnd(duration));
+}
+
+function centeredText(text, col, size, cx, y, duration, panelW) {
+  const boxLeftEdge = cx - Math.round(panelW / 2);
+  const leftPadding = 35;
+  const x = boxLeftEdge + leftPadding;
+  const shadow = color(0, 0, 0);
+  alt1.overLayText(text, shadow, rnd(size), rnd(x + 3), rnd(y + 3), rnd(duration));
+  alt1.overLayText(text, col, rnd(size), rnd(x), rnd(y), rnd(duration));
+}
+
+function textCenteredAt(text, col, size, centerX, y, duration) {
+  const w = measureTextWidth(text, size);
+  const x = Math.round(centerX - w / 2);
+  const shadow = color(0, 0, 0);
+  alt1.overLayText(text, shadow, rnd(size), rnd(x + 2), rnd(y + 2), rnd(duration));
+  alt1.overLayText(text, col, rnd(size), rnd(x), rnd(y), rnd(duration));
+}
+
+/* ================================================================
+   OVERLAY ICON PREPARATION (verbatim pattern — encodes each icon
+   used across ALL bosses once at startup)
+================================================================ */
+function collectIconSrcs() {
+  const srcs = new Set();
+  Object.values(CUES).forEach(cue => {
+    cue.actions.forEach(action => {
+      if (action.type === "icon") srcs.add(action.src);
+    });
+  });
+  return srcs;
+}
+
+function loadIconForOverlay(src) {
+  if (overlayIconCache[src]) return;
+  overlayIconCache[src] = { status: "pending" };
+
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || 32;
+      canvas.height = img.naturalHeight || 32;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const lib = window.A1lib || window.a1lib || null;
+
+      if (lib && typeof lib.encodeImageString === "function") {
+        const encoded = lib.encodeImageString(imageData);
+        overlayIconCache[src] = { status: "ready", data: encoded, width: canvas.width, height: canvas.height };
+        log("Overlay icon ready: " + src, "info");
+      } else {
+        overlayIconCache[src] = { status: "error" };
+        log("a1lib has no image encoder — " + src + " will show as text only on the overlay", "info");
+      }
+    } catch (e) {
+      overlayIconCache[src] = { status: "error" };
+      log("Overlay icon encode failed for " + src + ": " + (e.message || e), "info");
+    }
+  };
+  img.onerror = () => {
+    overlayIconCache[src] = { status: "error" };
+    log("Overlay icon failed to load: " + src + " (copy your icons/ folder from the Zamorak app if missing)", "info");
+  };
+  img.src = src;
+}
+
+function preloadOverlayIcons() {
+  collectIconSrcs().forEach(loadIconForOverlay);
+}
+
+/* ================================================================
+   AUDIO / SPEECH
+================================================================ */
+let audioCtx = null;
+
+function playBeep(freq = 880, durationMs = 140) {
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const vol = Math.max(0, Math.min(1, masterVoiceVolume)) * 0.2;
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + durationMs / 1000);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + durationMs / 1000);
+  } catch (e) {
+    log("Beep error: " + (e.message || e), "info");
+  }
+}
+
+function speakActions(text) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const spokenText = text.replace(/→/g, ", ");
+    const utterance = new SpeechSynthesisUtterance(spokenText);
+
+    const voices = window.speechSynthesis.getVoices();
+    const premiumVoice = voices.find(v =>
+      v.name.includes("David") || v.name.includes("Google US English") || v.name.includes("Zira")
+    );
+    if (premiumVoice) utterance.voice = premiumVoice;
+
+    utterance.rate = 1.35;
+    utterance.pitch = 1.15;
+    utterance.volume = masterVoiceVolume;
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
+/* ================================================================
+   BANNER (overlay + board + audio) — verbatim layout pattern
+================================================================ */
+function showBanner(id) {
+  const cue = CUES[id];
+  if (!cue) return;
+
+  const firedAt = Date.now();
+  const cooldownMs = cue.cooldownMs !== undefined ? cue.cooldownMs : 2500;
+  if (lastFired[id] && firedAt - lastFired[id] < cooldownMs) return;
+  lastFired[id] = firedAt;
+
+  // Switch the visible boss tab to match, so auto-read follows you
+  // through the instance without manual tab switching.
+  if (cue.boss && currentBoss !== cue.boss) {
+    setActiveBossTab(cue.boss);
+  }
+
+  playBeep();
+  renderCue(id);
+
+  if (!window.alt1) {
+    log("Cue displayed in app — Alt1 unavailable for overlay", "info");
+    return;
+  }
+
+  try {
+    const now = Date.now();
+    activeCues = activeCues.filter(c => c.expiresAt > now);
+    const slot = activeCues.length;
+    activeCues.push({ id: id, expiresAt: now + cue.duration });
+
+    alt1.overLaySetGroup("sanctumcue");
+
+    const textSize = 20;
+    const labelSize = 13;
+    const arrowGap = 34;
+    const slotPadding = 14;
+    const iconDrawSize = 46;
+
+    const slots = cue.actions.map(action => {
+      if (action.type === "icon") {
+        const label = iconName(action.src);
+        const labelWidth = measureTextWidth(label, labelSize);
+        const cached = overlayIconCache[action.src];
+        const iconW = (cached && cached.status === "ready") ? cached.width : iconDrawSize;
+        return { kind: "icon", src: action.src, label: label, width: Math.ceil(Math.max(iconW, labelWidth) + slotPadding) };
+      }
+      return { kind: "text", label: action.text, width: Math.ceil(measureTextWidth(action.text, textSize) + slotPadding * 2) };
+    });
+
+    const hasIconSlot = slots.some(s => s.kind === "icon");
+    const maxIconHeight = slots.reduce((max, s) => {
+      if (s.kind !== "icon") return max;
+      const cached = overlayIconCache[s.src];
+      const h = (cached && cached.status === "ready") ? cached.height : iconDrawSize;
+      return Math.max(max, h);
+    }, 0);
+
+    const titleH = 30;
+    const panelH = (hasIconSlot ? Math.ceil(maxIconHeight + 50) : 60) + titleH;
+
+    let totalWidth = 0;
+    slots.forEach((s, i) => { totalWidth += s.width; if (i > 0) totalWidth += arrowGap; });
+
+    const titleWidth = measureTextWidth(cue.title, 22);
+    const outerPad = 40;
+    const panelW = Math.round(Math.max(320, Math.max(totalWidth, titleWidth) + outerPad));
+    const rowGap = 16;
+
+    const cx = Math.round(alt1.rsWidth / 2);
+    const cy = Math.round(alt1.rsHeight / 2);
+    const x = cx - Math.round(panelW / 2);
+    const y = Math.round((cy - Math.round(panelH / 2)) + slot * (panelH + rowGap));
+
+    const cueColor = color(cue.color[0], cue.color[1], cue.color[2]);
+    outline(cueColor, x, y, panelW, panelH, cue.duration, 4);
+
+    // Title line
+    textCenteredAt(cue.title, cueColor, 22, cx, y + 14, cue.duration);
+
+    let cursorX = x + Math.round((panelW - totalWidth) / 2);
+    const rowMidY = y + titleH + Math.round((panelH - titleH) / 2);
+
+    slots.forEach((s, i) => {
+      if (i > 0) {
+        const arrowCx = cursorX + Math.round(arrowGap / 2);
+        textCenteredAt("\u2192", COLORS.white, 22, arrowCx, rowMidY - 11, cue.duration);
+        cursorX += arrowGap;
+      }
+
+      const slotCx = cursorX + Math.round(s.width / 2);
+
+      if (s.kind === "icon") {
+        const cached = overlayIconCache[s.src];
+        if (cached && cached.status === "ready") {
+          const iw = cached.width;
+          const ih = cached.height;
+          const ix = slotCx - Math.round(iw / 2);
+          const iy = y + titleH + 6;
+          try {
+            alt1.overLayImage(rnd(ix), rnd(iy), cached.data, rnd(iw), rnd(cue.duration));
+          } catch (e) {
+            log("overLayImage failed for " + s.src + ": " + (e.message || e), "info");
+          }
+          textCenteredAt(s.label, COLORS.white, labelSize, slotCx, iy + ih + 6, cue.duration);
+        } else {
+          textCenteredAt(s.label, COLORS.white, textSize, slotCx, rowMidY - 11, cue.duration);
+          if (!cached) loadIconForOverlay(s.src);
+        }
+      } else {
+        textCenteredAt(s.label, COLORS.white, textSize, slotCx, rowMidY - 11, cue.duration);
+      }
+
+      cursorX += s.width;
+    });
+
+    if (hardMode && cue.hmNote) {
+      textCenteredAt(cue.hmNote, COLORS.yellow, 14, cx, y + panelH + 18, cue.duration);
+    }
+
+    const overlayTextLog = cue.title + ": " + slots.map(s => s.label).join(" \u2192 ");
+    log("CUE → " + overlayTextLog + " (slot " + slot + ")", "hit");
+    speakActions(cue.title + (slots.length ? ". " + slots.map(s => s.label).join(", ") : ""));
+
+  } catch (e) {
+    log("Overlay error: " + (e.message || e), "info");
+  }
+}
+
+function iconName(src) {
+  const names = {
+    "icons/freedom.png": "FREEDOM",
+    "icons/anticipation.png": "ANTICIPATION",
+    "icons/deflect_melee.png": "DEFLECT MELEE",
+    "icons/debilitate.png": "DEBILITATE",
+    "icons/deflect_magic.png": "DEFLECT MAGIC",
+    "icons/devotion.png": "DEVOTION",
+    "icons/resonance.png": "RESONANCE",
+    "icons/reflect.png": "REFLECT"
+  };
+  return names[src] || "";
+}
+
+/* ================================================================
+   KEYBOARD SHORTCUTS
+================================================================ */
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  const idx = TEST_KEYS.indexOf(e.key);
+  if (idx === -1) return;
+  const entries = cuesForBoss(currentBoss);
+  if (entries[idx]) {
+    e.preventDefault();
+    showBanner(entries[idx][0]);
+  }
+});
+
+/* ================================================================
+   AUTO DETECTION (verbatim pattern from the working Zamorak board:
+   window.Chatbox global, captureHoldFullRs, reader.pos check,
+   clean()/matches() substring matching)
+================================================================ */
+autoToggle.addEventListener("click", () => {
+  autoEnabled = !autoEnabled;
+  autoToggle.classList.toggle("on", autoEnabled);
+
+  if (autoEnabled) {
+    startAuto();
+  } else {
+    stopAuto();
+    if (window.alt1) alt1.overLayClearGroup("sanctumcue-chat");
+    setStatus(foundChat ? "Chat found — Auto OFF" : "Auto OFF");
+    log("Auto-read disabled");
+  }
+});
+
+function startAuto() {
+  if (!window.alt1) {
+    setStatus("Alt1 not detected", "err");
+    autoEnabled = false;
+    autoToggle.classList.remove("on");
+    return;
+  }
+
+  if (!reader) {
+    try {
+      const CB = window.Chatbox && (window.Chatbox.default || window.Chatbox);
+      if (CB) {
+        reader = new CB();
+        const lib = window.A1lib || window.a1lib || null;
+        if (lib && typeof lib.mixColor === "function") {
+          reader.readargs = reader.readargs || {};
+          reader.readargs.colors = [
+            lib.mixColor(153, 255, 153),
+            lib.mixColor(232, 4, 4),
+            lib.mixColor(255, 255, 255),
+            lib.mixColor(127, 169, 255),
+            lib.mixColor(255, 0, 0),
+            lib.mixColor(255, 255, 0),
+            lib.mixColor(255, 165, 0),
+            lib.mixColor(255, 140, 0),
+            lib.mixColor(170, 0, 214),
+            lib.mixColor(0, 255, 255),
+            lib.mixColor(255, 100, 100)
+          ];
+        }
+        log("ChatBoxReader created", "info");
+      } else {
+        log("ChatBoxReader global not found", "info");
+      }
+    } catch (e) {
+      log("Reader init: " + e.message, "info");
+    }
+  }
+
+  if (reader) reader.pos = null;
+  foundChat = false;
+
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(tick, 150);
+
+  setStatus("Auto ON — looking for chat…", "warn");
+  log("Auto-read started", "info");
+}
+
+function stopAuto() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+function captureScreen() {
+  let img = null;
+  const lib = window.A1lib || window.a1lib || null;
+  try {
+    if (lib && typeof lib.captureHoldFullRs === "function") {
+      img = lib.captureHoldFullRs();
+    } else if (lib && typeof lib.captureHold === "function") {
+      img = lib.captureHold(0, 0, alt1.rsWidth, alt1.rsHeight);
+    } else if (alt1.captureHoldFullRs) {
+      img = alt1.captureHoldFullRs();
+    }
+  } catch (e) {
+    log("Capture error: " + (e.message || e), "info");
+  }
+  return img;
+}
+
+function findRectangle(obj, depth = 0) {
+  if (!obj || depth > 8) return null;
+  if (
+    typeof obj === "object" &&
+    typeof obj.x === "number" && typeof obj.y === "number" &&
+    typeof obj.width === "number" && typeof obj.height === "number" &&
+    obj.width > 30 && obj.height > 10
+  ) {
+    return { x: Math.round(obj.x), y: Math.round(obj.y), width: Math.round(obj.width), height: Math.round(obj.height) };
+  }
+  if (typeof obj !== "object") return null;
+  for (const key of Object.keys(obj)) {
+    try {
+      const result = findRectangle(obj[key], depth + 1);
+      if (result) return result;
+    } catch (_) {}
+  }
+  return null;
+}
+
+function highlightChat(r) {
+  if (!r) {
+    log("Chat found, but no rectangle was available", "info");
+    return;
+  }
+  try {
+    alt1.overLayClearGroup("sanctumcue-chat");
+    alt1.overLaySetGroup("sanctumcue-chat");
+    const green = color(0, 255, 60);
+    outline(green, r.x, r.y, r.width, r.height, 10000, 8);
+    const yellow = color(255, 255, 0);
+    outline(yellow, r.x + 5, r.y + 5, Math.max(1, r.width - 10), Math.max(1, r.height - 10), 10000, 2);
+    textWithShadow("CHAT DETECTED", green, 20, r.x, Math.max(25, r.y - 12), 10000);
+    log("CHAT HIGHLIGHT → " + r.x + "," + r.y + " " + r.width + "x" + r.height, "hit");
+  } catch (e) {
+    log("Chat highlight error: " + (e.message || e), "info");
+  }
+}
+
+function tick() {
+  if (!autoEnabled || !window.alt1) return;
+  try {
+    if (!reader || typeof reader.find !== "function") return;
+    const img = captureScreen();
+    if (!img) return;
+
+    if (!reader.pos) {
+      const pos = reader.find(img);
+      if (pos) {
+        foundChat = true;
+        setStatus("Chat found — watching…", "ok");
+        log("Chatbox located", "hit");
+        const rect = findRectangle(reader.pos);
+        if (rect) highlightChat(rect);
+        else log("Chatbox found but no rectangle was exposed", "info");
+      } else {
+        setStatus("Looking for chatbox… (keep it visible)", "warn");
+        return;
+      }
+    }
+
+    const lines = reader.read(img);
+    if (lines && lines.length) processLines(lines);
+  } catch (e) {
+    if (Math.random() < 0.03) log("Tick error: " + (e.message || e), "info");
+  }
+}
+
+function clean(str) {
+  return (str || "").toString().toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function matches(text, trigger) {
+  const a = clean(text).replace(/\s/g, "");
+  const b = clean(trigger).replace(/\s/g, "");
+  if (!a || !b) return false;
+  return a.includes(b);
+}
+
+function processLines(lines) {
+  for (const line of lines) {
+    let raw = "";
+    if (typeof line === "string") raw = line;
+    else if (line && line.text) raw = line.text;
+    else if (line && line.fragments) raw = line.fragments.map(f => f.text || "").join("");
+    else {
+      try { raw = JSON.stringify(line); } catch (_) { raw = ""; }
+    }
+
+    const text = clean(raw);
+    if (!text || text.length < 4) continue;
+
+    if (text !== lastLogged && text.length > 8) {
+      lastLogged = text;
+      log("READ: " + text.slice(0, 100), "info");
+    }
+
+    for (const [id, cue] of Object.entries(CUES)) {
+      for (const trigger of cue.triggers) {
+        if (matches(text, trigger)) {
+          log("TRIGGER → " + id, "hit");
+          showBanner(id);
+          return;
+        }
+      }
+    }
+  }
+}
+
+/* ================================================================
+   INIT
+================================================================ */
+function init() {
+  loadDisplaySettings();
+  buildTestGrid();
+
+  if (!window.alt1) {
+    setStatus("Open this page inside Alt1 Toolkit", "err");
+    log("Alt1 was not detected");
+    return;
+  }
+
+  if (alt1.permissionPixel === false || alt1.permissionOverlay === false) {
+    setStatus("Grant Pixel + Overlay permissions", "warn");
+    log("Missing Pixel or Overlay permission");
+  } else {
+    setStatus("Ready — enable Auto-read", "ok");
+  }
+
+  setTimeout(() => {
+    const lib = window.A1lib || window.a1lib;
+    if (lib && typeof lib.mixColor === "function") log("A1lib.mixColor available", "hit");
+    else log("A1lib.mixColor unavailable — using RGBA fallback", "info");
+
+    if (window.Chatbox) log("Chatbox library available", "hit");
+    else log("Chatbox library not exposed", "info");
+
+    preloadOverlayIcons();
+  }, 800);
+
+  startAuto();
+  autoToggle.classList.toggle("on", autoEnabled);
+}
+
+if (window.alt1) {
+  init();
+} else {
+  setTimeout(init, 500);
+}
+
+window.processLines = processLines;
+
+</script>
+
+</body>
+</html>
