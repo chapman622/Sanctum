@@ -1205,19 +1205,23 @@ function startAuto() {
         const lib = window.A1lib || window.a1lib || null;
         if (lib && typeof lib.mixColor === "function") {
           reader.readargs = reader.readargs || {};
-          reader.readargs.colors = [
-            lib.mixColor(153, 255, 153),
-            lib.mixColor(232, 4, 4),
-            lib.mixColor(255, 255, 255),
-            lib.mixColor(127, 169, 255),
-            lib.mixColor(255, 0, 0),
-            lib.mixColor(255, 255, 0),
-            lib.mixColor(255, 165, 0),
-            lib.mixColor(255, 140, 0),
-            lib.mixColor(170, 0, 214),
-            lib.mixColor(0, 255, 255),
-            lib.mixColor(255, 100, 100)
-          ];
+           // TEMP: color override disabled to test the truncation theory —
+  // letting ChatBoxReader use its own default palette instead.
+  /*
+  reader.readargs.colors = [
+    lib.mixColor(153, 255, 153),
+    lib.mixColor(232, 4, 4),
+    lib.mixColor(255, 255, 255),
+    lib.mixColor(127, 169, 255),
+    lib.mixColor(255, 0, 0),
+    lib.mixColor(255, 255, 0),
+    lib.mixColor(255, 165, 0),
+    lib.mixColor(255, 140, 0),
+    lib.mixColor(170, 0, 214),
+    lib.mixColor(0, 255, 255),
+    lib.mixColor(255, 100, 100)
+  ];
+  */
         }
         log("ChatBoxReader created", "info");
       } else {
