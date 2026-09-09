@@ -1347,6 +1347,13 @@ function matches(text, trigger) {
 
 function processLines(lines) {
   for (const line of lines) {
+
+    try {
+      log("RAW: " + JSON.stringify(line), "info");
+    } catch (_) {
+      log("RAW: [unstringifiable line]", "info");
+    }
+    
     let raw = "";
     if (typeof line === "string") raw = line;
     else if (line && line.text) raw = line.text;
